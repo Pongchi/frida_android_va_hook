@@ -1,25 +1,36 @@
 import frida, sys, subprocess, socket, time, json, os
 
-# Frida 후킹을 위한 스크립트 로드
-hook_script = 'Java.perform(function (){'
+# 앱 이름 설정
+app_name = 'com.kakao.talk'
 
-# JavaScript 후킹 스크립트를 외부 파일로 분리하여 로드
-with open("./js/bypass_ssl_pinning.js", "r", encoding='utf-8') as f:
-    hook_script += f.read()
+# Frida 후킹을 위한 스크립트 로드 함수
+def load_js_scripts(app_name):
+    hook_script = ''
 
-# ./js 폴더에서 Telegram로 시작하는 모든 .js 파일을 읽어서 후킹 스크립트에 추가
-for filename in os.listdir('./js'):
-    if filename.startswith("telegram_") and filename.endswith(".js"):
-        filepath = os.path.join('./js', filename)
-        with open(filepath, "r", encoding='utf-8') as f:
-            hook_script += f.read()
+    # JavaScript 후킹 스크립트를 외부 파일로 분리하여 로드
+    base_js_path = f"./js/{app_name}"
 
-hook_script += '});'
+    # 기본 config.js와 bypass_ssl_pinning.js 로드
+    with open(f"./js/config.js", "r", encoding='utf-8') as f:
+        hook_script += f.read()
+
+    with open(f"./js/bypass_ssl_pinning.js", "r", encoding='utf-8') as f:
+        hook_script += f.read()
+
+    # app_name 폴더에서 모든 js 파일을 읽어서 후킹 스크립트에 추가
+    if os.path.exists(base_js_path):
+        for filename in os.listdir(base_js_path):
+            if filename.endswith(".js"):
+                filepath = os.path.join(base_js_path, filename)
+                with open(filepath, "r", encoding='utf-8') as f:
+                    hook_script += f.read()
+
+    return hook_script
 
 # Frida 메시지 출력 핸들러
 def on_message(message, data):
     if message['type'] == 'send':
-        print("[*] {0}".format(message['payload']))
+        print(f"[*] {message['payload']}")
     else:
         print(message)
 
@@ -32,7 +43,7 @@ def start_frida_server():
         time.sleep(1)
 
         # Frida 서버 실행
-        subprocess.run(['adb', 'shell', 'nohup', '/data/local/tmp/frida-server-64', '> /dev/null 2>&1 &'],
+        subprocess.run(['adb', 'shell', 'nohup', '/data/local/tmp/frida-server', '> /dev/null 2>&1 &'],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print('[@] Frida 서버가 실행되었습니다.')
     except Exception as e:
@@ -74,19 +85,21 @@ def set_proxy(ip, port=8080):
 def main():
     try:
         device = frida.get_usb_device()  # USB로 연결된 장치에 연결
-        pid = device.spawn(["org.telegram.messenger"])  # Telegram 메신저 패키지명
+        pid = device.spawn([app_name])  # 앱 패키지명
         session = device.attach(pid)  # 프로세스에 연결
         
+        # 앱 이름을 기반으로 후킹 스크립트 로드
+        hook_script = load_js_scripts(app_name)
         script = session.create_script(hook_script)  # 후킹 스크립트 생성
         script.on("message", on_message)  # 메시지 처리 핸들러 설정
         script.load()  # 스크립트 로드
         
-        device.resume(pid)  # Telegram 메신저 실행 재개
+        device.resume(pid)  # 앱 실행 재개
         sys.stdin.read()  # 스크립트 유지
     except frida.ProcessNotFoundError:
-        print("프로세스를 찾을 수 없습니다. Telegram 앱이 실행 중인지 확인하세요.")
+        print(f"프로세스를 찾을 수 없습니다. {app_name} 앱이 실행 중인지 확인하세요.")
     except Exception as e:
-        print(f"오류 발생: {e}")
+        print(f"후킹 Script 오류 발생: {e}")
 
 if __name__ == '__main__':
     start_frida_server()

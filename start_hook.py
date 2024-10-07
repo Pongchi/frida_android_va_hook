@@ -1,7 +1,7 @@
 import frida, sys, subprocess, socket, time, json, os
 
 # 앱 이름 설정
-app_name = 'com.kakao.talk'
+app_name = 'com.discord'
 
 # Frida 후킹을 위한 스크립트 로드 함수
 def load_js_scripts(app_name):

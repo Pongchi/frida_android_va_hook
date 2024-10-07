@@ -1,7 +1,8 @@
 import frida, sys, subprocess, socket, time, json, os
 
 # 앱 이름 설정
-app_name = 'com.discord'
+app_name = 'com.discord'  # 패키지 이름 (앱 패키지)
+process_name = 'Discord'  # 실제 프로세스 이름
 
 # Frida 후킹을 위한 스크립트 로드 함수
 def load_js_scripts(app_name):
@@ -81,31 +82,101 @@ def set_proxy(ip, port=8080):
     with open('burp_project_settings.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
-# Frida 후킹 실행
-def main():
+# ADB 재연결
+def reconnect_adb():
+    try:
+        # ADB를 다시 연결
+        subprocess.run(['adb', 'disconnect'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['adb', 'connect', 'localhost:62001'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print('[@] ADB 재연결 완료.')
+    except Exception as e:
+        print(f"[@] ADB 재연결 중 에러 발생: {e}")
+
+# ADB 연결 상태 확인
+def is_adb_alive():
+    try:
+        result = subprocess.run(['adb', 'shell', 'echo', 'ping'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"[@] ADB 상태 확인 중 오류 발생: {e}")
+        return False
+
+# 이미 실행 중인 프로세스에 attach
+def attach_to_process():
     try:
         device = frida.get_usb_device()  # USB로 연결된 장치에 연결
-        pid = device.spawn([app_name])  # 앱 패키지명
-        session = device.attach(pid)  # 프로세스에 연결
-        
+        pid = None
+
+        # 실행 중인 프로세스 목록을 가져와 process_name과 일치하는 프로세스를 찾음
+        processes = device.enumerate_processes()
+        for process in processes:
+            if process_name in process.name:  # process_name과 일치하는지 확인
+                pid = process.pid
+                print(f"[@] {process_name} 프로세스 PID: {pid} (프로세스 이름: {process.name})")
+                break
+
+        if pid is None:
+            print(f"[@] {process_name} 프로세스를 찾을 수 없습니다.")
+            return None
+
+        session = device.attach(pid)  # 프로세스에 attach
+
         # 앱 이름을 기반으로 후킹 스크립트 로드
         hook_script = load_js_scripts(app_name)
         script = session.create_script(hook_script)  # 후킹 스크립트 생성
         script.on("message", on_message)  # 메시지 처리 핸들러 설정
         script.load()  # 스크립트 로드
-        
+
+        return session  # 세션 반환
+    except frida.ProcessNotFoundError:
+        print(f"프로세스를 찾을 수 없습니다. {process_name} 앱이 실행 중인지 확인하세요.")
+    except Exception as e:
+        print(f"후킹 Script 오류 발생: {e}")
+        return None
+
+# 앱을 spawn 하여 후킹 실행
+def spawn_and_hook():
+    try:
+        device = frida.get_usb_device()  # USB로 연결된 장치에 연결
+        pid = device.spawn([app_name])  # 앱 패키지명으로 앱을 spawn
+        session = device.attach(pid)  # 프로세스에 attach
+
+        # 앱 이름을 기반으로 후킹 스크립트 로드
+        hook_script = load_js_scripts(app_name)
+        script = session.create_script(hook_script)  # 후킹 스크립트 생성
+        script.on("message", on_message)  # 메시지 처리 핸들러 설정
+        script.load()  # 스크립트 로드
+
         device.resume(pid)  # 앱 실행 재개
-        sys.stdin.read()  # 스크립트 유지
+
+        return session  # 세션 반환
     except frida.ProcessNotFoundError:
         print(f"프로세스를 찾을 수 없습니다. {app_name} 앱이 실행 중인지 확인하세요.")
     except Exception as e:
         print(f"후킹 Script 오류 발생: {e}")
+        return None
 
-if __name__ == '__main__':
+# 메인 함수
+def main():
     start_frida_server()
-    
+
     host_ip = get_host_ip()
     if host_ip:
         set_proxy(host_ip)
 
+    # 앱을 spawn하고 후킹 시작
+    session = spawn_and_hook()
+    time.sleep(2)  # 프로세스가 안정화될 시간을 잠시 대기
+
+    # ADB 상태 확인 후 재연결
+    if not is_adb_alive():
+        print("[@] ADB가 죽었습니다. 재연결 시도 중...")
+        reconnect_adb()
+
+    # ADB 다시 연결 후 attach하여 세션 재설정
+    session = attach_to_process()  # 세션 재설정
+
+    sys.stdin.read()  # 스크립트 유지
+
+if __name__ == '__main__':
     main()

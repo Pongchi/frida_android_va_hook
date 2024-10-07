@@ -9,5 +9,5 @@ Java.perform(function() {
         console.log("[+]Setting the value of setWebContentsDebuggingEnabled() to TRUE");
         this.setWebContentsDebuggingEnabled(true);
         this.loadUrl.overload("java.lang.String").call(this, url);
-    }
+    };
 });

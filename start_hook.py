@@ -166,15 +166,15 @@ def main():
 
     # 앱을 spawn하고 후킹 시작
     session = spawn_and_hook()
-    time.sleep(2)  # 프로세스가 안정화될 시간을 잠시 대기
+    time.sleep(3)  # 프로세스가 안정화될 시간을 잠시 대기
 
     # ADB 상태 확인 후 재연결
     if not is_adb_alive():
         print("[@] ADB가 죽었습니다. 재연결 시도 중...")
         reconnect_adb()
 
-    # ADB 다시 연결 후 attach하여 세션 재설정
-    session = attach_to_process()  # 세션 재설정
+         # ADB 다시 연결 후 attach하여 세션 재설정
+        session = attach_to_process()  # 세션 재설정
 
     sys.stdin.read()  # 스크립트 유지
 

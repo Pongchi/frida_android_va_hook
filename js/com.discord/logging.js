@@ -1,3 +1,4 @@
+/*
 Java.perform(function () {
     // com.discord.logging.LoggingTree 클래스를 후킹
     var LoggingTree = Java.use("com.discord.logging.LoggingTree");
@@ -21,6 +22,7 @@ Java.perform(function () {
         }
     };
 });
+*/
 
 Java.perform(function () {
     // org.webrtc.JNILogging 클래스를 후킹

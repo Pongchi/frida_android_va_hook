@@ -1,8 +1,15 @@
 import frida, sys, subprocess, socket, time, json, os
 
+targets = [
+    ['org.thoughtcrime.securesms', 'Signal'], # 0
+    ['org.telegram.messenger', '텔레그램'], # 1
+    ['com.kakao.talk', '카카오톡'], # 2
+    ['com.discord', 'Discord'], # 3
+]
+
+target_index = 0
 # 앱 이름 설정
-app_name = 'org.telegram.messenger'  # 패키지 이름 (앱 패키지)
-process_name = '텔레그램'  # 실제 프로세스 이름
+app_name, process_name = targets[target_index]
 
 # Frida 후킹을 위한 스크립트 로드 함수
 def load_js_scripts(app_name):
@@ -10,17 +17,16 @@ def load_js_scripts(app_name):
     base_js_path = f"./js/{app_name}"
 
     with open(f"./js/config.js", "r", encoding='utf-8') as f:
-        hook_script += f.read()
-
+        hook_script += f.read() + '\n'
     with open(f"./js/bypass_ssl_pinning.js", "r", encoding='utf-8') as f:
-        hook_script += f.read()
+        hook_script += f.read() + '\n'
 
     if os.path.exists(base_js_path):
         for filename in os.listdir(base_js_path):
             if filename.endswith(".js"):
                 filepath = os.path.join(base_js_path, filename)
                 with open(filepath, "r", encoding='utf-8') as f:
-                    hook_script += f.read()
+                    hook_script += f.read() + '\n'
 
     return hook_script
 
@@ -43,15 +49,6 @@ def start_frida_server():
         print('[@] Frida 서버가 실행되었습니다.')
     except Exception as e:
         print(f"[@] Frida 서버 실행 중 에러 발생: {e}")
-
-# ADB logcat을 adb.log 파일에 기록하는 함수
-def start_adb_logcat():
-    try:
-        log_file = open('adb.log', 'w')
-        subprocess.Popen(['adb', 'logcat'], stdout=log_file, stderr=subprocess.STDOUT)
-        print('[@] ADB logcat 기록이 adb.log 파일에 시작되었습니다.')
-    except Exception as e:
-        print(f"[@] ADB logcat 실행 중 에러 발생: {e}")
 
 # 호스트 머신의 IP 주소를 가져오는 함수
 def get_host_ip():
@@ -94,11 +91,13 @@ def reconnect_adb():
 # ADB 연결 상태 확인
 def is_adb_alive():
     try:
-        result = subprocess.run(['adb', 'shell', 'echo', 'ping'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return result.returncode == 0
+        result = subprocess.run(['adb', 'get-state'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        adb_state = result.stdout.decode('utf-8').strip()
+        return adb_state == 'device'  # 상태가 'device'이면 ADB 연결이 정상
     except Exception as e:
         print(f"[@] ADB 상태 확인 중 오류 발생: {e}")
         return False
+
 
 # 이미 실행 중인 프로세스에 attach
 def attach_to_process():
@@ -153,6 +152,33 @@ def spawn_and_hook():
         print(f"후킹 Script 오류 발생: {e}")
         return None
 
+# Health check: ADB와 프로세스 상태 확인
+def health_check(session):
+    while True:
+        time.sleep(1)  # 1초 간격으로 health check 수행
+        if not is_adb_alive():
+            print("[@] ADB가 죽었습니다. 재연결 시도 중...")
+            reconnect_adb()
+
+            # 프로세스가 살아있는지 확인하고, 살아있으면 attach, 그렇지 않으면 spawn
+            try:
+                device = frida.get_usb_device()
+                pid = None
+                processes = device.enumerate_processes()
+                for process in processes:
+                    if process_name in process.name:
+                        pid = process.pid
+                        print(f"[@] {process_name} 프로세스가 살아있음 (PID: {pid}). attach 수행.")
+                        session = attach_to_process()  # 프로세스가 살아있으면 attach
+                        break
+
+                if pid is None:
+                    print(f"[@] {process_name} 프로세스가 죽었음. spawn 수행.")
+                    session = spawn_and_hook()  # 프로세스가 죽었으면 spawn
+
+            except Exception as e:
+                print(f"[@] 프로세스 확인 중 오류 발생: {e}")
+
 # 메인 함수
 def main():
     start_frida_server()
@@ -161,18 +187,10 @@ def main():
     if host_ip:
         set_proxy(host_ip)
 
-    # adb logcat 기록 시작
-    start_adb_logcat()
-
     session = spawn_and_hook()
-    time.sleep(3)  
 
-    if not is_adb_alive():
-        print("[@] ADB가 죽었습니다. 재연결 시도 중...")
-        reconnect_adb()
-        time.sleep(3)
-
-        session = attach_to_process()
+    # Health check 시작
+    health_check(session)
 
     sys.stdin.read()  
 

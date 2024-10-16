@@ -83,6 +83,8 @@ def set_proxy(ip, port=8080):
 def reconnect_adb():
     try:
         subprocess.run(['adb', 'disconnect'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(1)
+
         subprocess.run(['adb', 'connect', 'localhost:62001'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print('[@] ADB 재연결 완료.')
     except Exception as e:
@@ -138,7 +140,6 @@ def spawn_and_hook():
         session = device.attach(pid)
 
         hook_script = load_js_scripts(app_name)
-        time.sleep(2)
         script = session.create_script(hook_script)
         script.on("message", on_message)
         script.load()

@@ -31,7 +31,6 @@ Java.perform(() => {
         const result = this.toJson(object);
 
         // 인자와 결과 출력
-        console.log('Input Object: ' + object.toString());
         console.log('JSON Result: ' + result);
 
         // 결과 반환
@@ -53,9 +52,6 @@ Java.perform(() => {
 
         // 원래 메소드를 호출하여 결과 반환
         const result = this.readValue(jsonString, clazz);
-
-        // 변환된 결과를 출력
-        console.log('Deserialized Object: ' + result.toString());
 
         return result;
     };
@@ -91,9 +87,6 @@ Java.perform(() => {
 
         // 원래 메소드를 호출하고 결과 캡처
         const jsonString = this.toJson(object);
-
-        // 결과 출력
-        console.log('JSON Result: ' + jsonString);
 
         // 결과 반환 (정상 동작 유지)
         return jsonString;

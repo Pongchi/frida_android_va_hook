@@ -1,80 +1,66 @@
-Java.perform(function() {
-    console.log("[*] SSL Pinning Bypass 시작");
+/* 
+   Android SSL Re-pinning frida script v0.2 030417-pier 
 
-    var CertificateFactory = Java.use("java.security.cert.CertificateFactory");
-    var FileInputStream = Java.use("java.io.FileInputStream");
-    var BufferedInputStream = Java.use("java.io.BufferedInputStream");
-    var X509Certificate = Java.use("java.security.cert.X509Certificate");
-    var KeyStore = Java.use("java.security.KeyStore");
-    var TrustManagerFactory = Java.use("javax.net.ssl.TrustManagerFactory");
-    var SSLContext = Java.use("javax.net.ssl.SSLContext");
-    var KeyManagerFactory = Java.use("javax.net.ssl.KeyManagerFactory");
+   $ adb push burpca-cert-der.crt /data/local/tmp/cert-der.crt
+   $ frida -U -f it.app.mobile -l frida-android-repinning.js --no-pause
 
-    // Load CAs from an InputStream
-    var cf = CertificateFactory.getInstance("X.509");
+   https://techblog.mediaservice.net/2017/07/universal-android-ssl-pinning-bypass-with-frida/
+   
+   UPDATE 20191605: Fixed undeclared var. Thanks to @oleavr and @ehsanpc9999 !
+*/
 
-    try {
-        var fileInputStream = FileInputStream.$new("/data/local/tmp/cert-der.crt");
-    } catch (err) {}
+setTimeout(function(){
+    Java.perform(function (){
+    	console.log("");
+	    console.log("[.] Cert Pinning Bypass/Re-Pinning");
 
-    var bufferedInputStream = BufferedInputStream.$new(fileInputStream);
-    var ca = cf.generateCertificate(bufferedInputStream);
-    bufferedInputStream.close();
+	    var CertificateFactory = Java.use("java.security.cert.CertificateFactory");
+	    var FileInputStream = Java.use("java.io.FileInputStream");
+	    var BufferedInputStream = Java.use("java.io.BufferedInputStream");
+	    var X509Certificate = Java.use("java.security.cert.X509Certificate");
+	    var KeyStore = Java.use("java.security.KeyStore");
+	    var TrustManagerFactory = Java.use("javax.net.ssl.TrustManagerFactory");
+	    var SSLContext = Java.use("javax.net.ssl.SSLContext");
 
-    var certInfo = Java.cast(ca, X509Certificate);
+	    // Load CAs from an InputStream
+	    console.log("[+] Loading our CA...")
+	    var cf = CertificateFactory.getInstance("X.509");
+	    
+	    try {
+	    	var fileInputStream = FileInputStream.$new("/data/local/tmp/cert-der.crt");
+	    }
+	    catch(err) {
+	    	console.log("[o] " + err);
+	    }
+	    
+	    var bufferedInputStream = BufferedInputStream.$new(fileInputStream);
+	  	var ca = cf.generateCertificate(bufferedInputStream);
+	    bufferedInputStream.close();
 
-    // Create a KeyStore containing our trusted CAs
-    var keyStoreType = KeyStore.getDefaultType();
-    var keyStore = KeyStore.getInstance(keyStoreType);
-    keyStore.load(null, null);
-    keyStore.setCertificateEntry("ca", ca);
+		var certInfo = Java.cast(ca, X509Certificate);
+	    console.log("[o] Our CA Info: " + certInfo.getSubjectDN());
 
-    // Create a TrustManager that trusts the CAs in our KeyStore
-    var tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
-    var tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
-    tmf.init(keyStore);
+	    // Create a KeyStore containing our trusted CAs
+	    console.log("[+] Creating a KeyStore for our CA...");
+	    var keyStoreType = KeyStore.getDefaultType();
+	    var keyStore = KeyStore.getInstance(keyStoreType);
+	    keyStore.load(null, null);
+	    keyStore.setCertificateEntry("ca", ca);
+	    
+	    // Create a TrustManager that trusts the CAs in our KeyStore
+	    console.log("[+] Creating a TrustManager that trusts the CA in our KeyStore...");
+	    var tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+	    var tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+	    tmf.init(keyStore);
+	    console.log("[+] Our TrustManager is ready...");
 
-    // Create a KeyManagerFactory and KeyManager array
-    var kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-    kmf.init(null, null);
+	    console.log("[+] Hijacking SSLContext methods now...")
+	    console.log("[-] Waiting for the app to invoke SSLContext.init()...")
 
-    SSLContext.init.overload("[Ljavax.net.ssl.KeyManager;", "[Ljavax.net.ssl.TrustManager;", "java.security.SecureRandom").implementation = function(keyManagers, trustManagers, secureRandom) {
-        if (keyManagers == null) {
-            keyManagers = kmf.getKeyManagers();
-        }
-        if (trustManagers == null) {
-            trustManagers = tmf.getTrustManagers();
-        }
-        SSLContext.init.overload("[Ljavax.net.ssl.KeyManager;", "[Ljavax.net.ssl.TrustManager;", "java.security.SecureRandom").call(this, keyManagers, trustManagers, secureRandom);
-    };
-
-    var HttpsURLConnection = Java.use('javax.net.ssl.HttpsURLConnection');
-    HttpsURLConnection.setSSLSocketFactory.implementation = function(factory) {
-        this.setSSLSocketFactory(factory);
-    };
-
-    try {
-        var OkHttp_CertificatePinner = Java.use('okhttp3.CertificatePinner');
-        OkHttp_CertificatePinner.check.overload('java.lang.String', 'java.util.List').implementation = function(a, b) {
-            return;
-        };
-    } catch (err) {}
-
-    try {
-        var array_list = Java.use("java.util.ArrayList");
-        var TrustManagerImpl = Java.use('com.android.org.conscrypt.TrustManagerImpl');
-        TrustManagerImpl.checkTrustedRecursive.implementation = function(a1, a2, a3, a4, a5, a6) {
-            return array_list.$new();
-        };
-        TrustManagerImpl.verifyChain.implementation = function(untrustedChain, trustAnchorChain, host, clientAuth, ocspData, tlsSctData) {
-            return untrustedChain;
-        };
-    } catch (err) {}
-
-    try {
-        var WebViewClient = Java.use("android.webkit.WebViewClient");
-        WebViewClient.onReceivedSslError.implementation = function(view, handler, error) {
-            handler.proceed();
-        };
-    } catch (err) {}
-});
+	   	SSLContext.init.overload("[Ljavax.net.ssl.KeyManager;", "[Ljavax.net.ssl.TrustManager;", "java.security.SecureRandom").implementation = function(a,b,c) {
+	   		console.log("[o] App invoked javax.net.ssl.SSLContext.init...");
+	   		SSLContext.init.overload("[Ljavax.net.ssl.KeyManager;", "[Ljavax.net.ssl.TrustManager;", "java.security.SecureRandom").call(this, a, tmf.getTrustManagers(), c);
+	   		console.log("[+] SSLContext initialized with our custom TrustManager!");
+	   	}
+    });
+},0);

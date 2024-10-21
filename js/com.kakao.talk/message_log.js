@@ -84,8 +84,6 @@ Java.perform(function () {
 
     // d 클래스의 생성자를 후킹합니다.
     dClass.$init.overload('com.kakao.talk.loco.protocol.b', 'jf3.d').implementation = function (locoHeader, bodyMap) {
-        console.log("[*] d 클래스의 생성자 호출 감지");
-
         // Header와 BodyMap을 출력합니다.
         console.log("[*] Header: " + locoHeader);
         console.log("[*] BodyMap: " + bodyMap);

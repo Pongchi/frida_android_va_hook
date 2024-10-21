@@ -37,7 +37,7 @@ function hookSession(locoClient) {
 
 Java.perform(function () {
     try {
-        var BasicBSONObject = Java.use("kc3.f");
+        var BasicBSONObject = Java.use("jf3.f");
         console.log("[+] Found BasicBSONObject Class!");
 
         // a 메소드 후킹
@@ -79,79 +79,72 @@ Java.perform(function () {
 });
 
 Java.perform(function () {
-    // `com.kakao.talk.loco.protocol.d` 클래스를 찾습니다.
+    // `com.kakao.talk.loco.protocol.d` 클래스를 가져옵니다.
     var dClass = Java.use("com.kakao.talk.loco.protocol.d");
 
     // d 클래스의 생성자를 후킹합니다.
-    dClass.$init.overload('com.kakao.talk.loco.protocol.b', 'kc3.d').implementation = function (bVar2, a14) {
-        console.log("[*] Server 에서 수신된 데이터");
+    dClass.$init.overload('com.kakao.talk.loco.protocol.b', 'jf3.d').implementation = function (locoHeader, bodyMap) {
+        console.log("[*] d 클래스의 생성자 호출 감지");
 
-        // bVar2 출력
-        console.log("[*] Header : " + bVar2);
-        // a14 출력
-        console.log("[*] Body");
+        // Header와 BodyMap을 출력합니다.
+        console.log("[*] Header: " + locoHeader);
+        console.log("[*] BodyMap: " + bodyMap);
 
         try {
-            // a14 객체의 toMap()을 호출하여 Map 객체를 가져옵니다.
-            var map = a14.toMap();
+            // bodyMap의 toMap() 메소드를 호출해 Map 객체로 변환합니다.
+            var map = bodyMap.toMap();
 
-            // Map의 키를 가져옵니다.
-            var keys = map.keySet();  // Java의 Set 객체 반환
-            var keysArray = Java.cast(keys, Java.use("java.util.Set"));  // 명시적 변환
+            // Map의 모든 키를 순회하며 내용을 출력합니다.
+            var keys = map.keySet();
+            var iterator = keys.iterator();
 
             var result = [];
-            var iterator = keysArray.iterator();
             while (iterator.hasNext()) {
                 var key = iterator.next();
-                var value = map.get(key);  // 각 키에 대응하는 값을 가져옴
+                var value = map.get(key);
 
-                // chatLog라는 키가 있다면 그 안의 값도 처리합니다.
+                // chatLog라는 키를 처리합니다.
                 if (key.toString() === "chatLog") {
-
-                    // `kc3.f` 클래스는 `LinkedHashMap`이므로 바로 Map처럼 처리 가능
-                    var chatLogMap = Java.cast(value, Java.use("java.util.LinkedHashMap")); // LinkedHashMap으로 캐스팅
+                    var chatLogMap = Java.cast(value, Java.use("java.util.LinkedHashMap"));
                     var chatLogResult = [];
 
-                    // chatLog 안의 key=value 형태로 문자열로 결합
                     var chatLogKeys = chatLogMap.keySet();
-                    var chatLogKeysArray = Java.cast(chatLogKeys, Java.use("java.util.Set"));
-                    var chatLogIterator = chatLogKeysArray.iterator();
+                    var chatLogIterator = chatLogKeys.iterator();
 
                     while (chatLogIterator.hasNext()) {
                         var chatLogKey = chatLogIterator.next();
                         var chatLogValue = chatLogMap.get(chatLogKey);
 
-                        // 배열을 순회하며 key와 originalValue가 일치하면 changeValue로 변경
+                        // 원하는 키-값 쌍을 변경합니다.
                         for (var i = 0; i < receiveDataReplacements.length; i++) {
                             var changeKey = receiveDataReplacements[i][0];
                             var originalValue = receiveDataReplacements[i][1];
                             var changeValue = receiveDataReplacements[i][2];
+
                             if (chatLogKey.toString() === changeKey && chatLogValue.toString() === originalValue) {
-                                chatLogValue = changeValue; // 값을 변경
-                                chatLogMap.put(chatLogKey, chatLogValue); // 변경된 값을 다시 Map에 넣기
-                                console.log("[*] '" + changeKey + "' 값이 '" + originalValue + "'에서 '" + changeValue + "'로 변경됨");
+                                chatLogValue = changeValue;  // 값 변경
+                                chatLogMap.put(chatLogKey, chatLogValue);  // 변경된 값 반영
+                                console.log("[*] '" + changeKey + "' 값이 '" + originalValue + "'에서 '" + changeValue + "'로 변경되었습니다.");
                             }
                         }
 
                         chatLogResult.push(chatLogKey + "=" + chatLogValue);
                     }
 
-                    // chatLog 전체를 문자열로 결합하여 저장
                     result.push(key + "={" + chatLogResult.join(", ") + "}");
                 } else {
-                    // 다른 key=value 형식으로 결합
                     result.push(key + "=" + value);
                 }
             }
 
-            // 최종 결과 출력
+            // 최종 결과를 출력합니다.
             console.log("{ " + result.join(", ") + " }");
-            
+
         } catch (e) {
-            console.log("에러 발생: " + e);
+            console.log("[!] 오류 발생: " + e);
         }
 
-        // 원래 생성자를 호출하여 객체가 정상적으로 생성되도록 합니다.
-        return this.$init(bVar2, a14);
+        // 원래 생성자를 호출해 객체를 정상적으로 생성합니다.
+        return this.$init(locoHeader, bodyMap);
     };
 });

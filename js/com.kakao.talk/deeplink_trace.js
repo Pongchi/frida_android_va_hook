@@ -31,7 +31,7 @@ function deepLinkSniffer() {
         uri.getQuery() && console.log("- Params:\t" + uri.getQuery());
         uri.getFragment() && console.log("- Fragment:\t" + uri.getFragment());
         console.log('--------------------------------------------');
-
+        /*
         // 450181815 문자열을 450182308로 변경
         var originalUriString = uri.toString();
         if (originalUriString.includes("450181815")) {
@@ -44,6 +44,7 @@ function deepLinkSniffer() {
           console.log("[-] 450181815 문자열을 찾지 못했습니다.");
           console.log('--------------------------------------------');
         }
+          */
       } else {
         console.log("[-] No data supplied.");
         console.log('--------------------------------------------');

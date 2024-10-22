@@ -8,10 +8,10 @@ import os
 
 # 후킹 대상 앱 목록
 targets = [
-    ['org.thoughtcrime.securesms', 'Signal'],
-    ['org.telegram.messenger', '텔레그램'],
-    ['com.kakao.talk', '카카오톡'],
-    ['com.discord', 'Discord'],
+    ['org.thoughtcrime.securesms', 'Signal'], # 0
+    ['org.telegram.messenger', '텔레그램'], # 1
+    ['com.kakao.talk', '카카오톡'], # 2.   apk version : 11.1.2
+    ['com.discord', 'Discord'], # 3 
 ]
 
 target_index = 2
@@ -72,7 +72,6 @@ def reset_adb():
     run_command(['adb', 'shell', 'settings', 'delete', 'global', 'https_proxy'])
     run_command(['adb', 'kill-server'])
     run_command(['adb', 'start-server'])
-    time.sleep(2)
     print("[@] ADB 설정 초기화 완료.")
 
 def start_frida_server():

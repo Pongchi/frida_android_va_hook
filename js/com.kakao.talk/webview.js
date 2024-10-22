@@ -10,7 +10,7 @@ function enableWebviewDebugging() {
   var Webview = Java.use("android.webkit.WebView");
 
   Webview.loadUrl.overload("java.lang.String").implementation = function (url) {
-    console.log("\n[+] Loading URL from", url);
+    console.log("\n[+] {case 1} Loading URL from", url);
 
     // WebView 설정 정보 출력
     printWebViewSettings(this);
@@ -26,7 +26,7 @@ function enableWebviewDebugging() {
   };
 
   Webview.loadUrl.overload("java.lang.String", "java.util.Map").implementation = function (url, additionalHttpHeaders) {
-    console.log("\n[+] Loading URL from", url);
+    console.log("\n[+] {case 2} Loading URL from", url);
     console.log("[+] Additional Headers:");
     var headers = Java.cast(additionalHttpHeaders, Java.use("java.util.Map"));
     printMap(headers);
@@ -124,3 +124,32 @@ function printMap(map) {
   }
 }
 
+Java.perform(function () {
+  // 클래스 및 메소드 후킹
+  var URIControllerClass = Java.use("u81.l");
+
+  // a 메소드의 원본 구현을 변수에 저장
+  var originalAMethod = URIControllerClass.a;
+
+  // a 메소드를 후킹하여 인자와 리턴 값 출력
+  URIControllerClass.a.implementation = function (context, sourceUri, map) {
+      console.log("[*] a() 메소드 호출됨");
+
+      // 인자 값 출력
+      console.log("    - context: " + context);
+      console.log("    - sourceUri: " + sourceUri.toString());
+      console.log("    - map: " + JSON.stringify(map));
+
+      // 원본 메소드 호출 및 리턴 값 저장
+      var result = originalAMethod.call(this, context, sourceUri, map);
+
+      // 리턴 값 출력
+      if (result !== null) {
+          console.log("    - 리턴 값: " + result.toString());
+      } else {
+          console.log("    - 리턴 값: null");
+      }
+
+      return result;  // 원본 리턴 값 반환
+  };
+});

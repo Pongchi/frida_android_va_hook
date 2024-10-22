@@ -153,3 +153,35 @@ Java.perform(function () {
       return result;  // 원본 리턴 값 반환
   };
 });
+
+/*
+Java.perform(function () {
+  // RPC 메서드 정의
+  rpc.exports = {
+      runprintpatterns: function () {
+          try {
+              var oClass = Java.use("com.kakao.talk.util.o");
+
+              var fields = oClass.class.getDeclaredFields();
+              var patterns = fields.map(function (field) {
+                  return field.getName(); // 필드 이름만 가져오기
+              });
+
+              console.log("[+] 모든 패턴 출력:");
+              patterns.forEach(function (pattern) {
+                  try {
+                      var patternInstance = oClass[pattern].value;
+                      console.log("    - " + pattern + ": " + patternInstance.pattern());
+                  } catch (e) {
+                      console.log("    - " + pattern + ": 접근 불가 또는 없음");
+                  }
+              });
+          } catch (e) {
+              console.error("[-] 오류 발생: " + e);
+          }
+      }
+  };
+});
+
+*/
+

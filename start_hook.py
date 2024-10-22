@@ -78,7 +78,7 @@ def start_frida_server():
     """Frida 서버 시작."""
     run_command(['adb', 'connect', 'localhost:5037'], check=True)
     time.sleep(1)
-    run_command(['adb', 'shell', '/data/local/tmp/frida-server &'], check=True)
+    run_command(['adb', 'shell', 'nohup /data/local/tmp/frida-server > /dev/null 2>&1 &'], check=True)
     print('[@] Frida 서버가 실행되었습니다.')
 
 def get_host_ip():

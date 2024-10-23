@@ -185,3 +185,46 @@ Java.perform(function () {
 
 */
 
+Java.perform(function () {
+  var WebClient = Java.use('com.kakao.talk.webview.activity.AccountSettingActivity$g');
+
+  WebClient.shouldOverrideUrlLoading.overload(
+      'android.webkit.WebView', 'java.lang.String'
+  ).implementation = function (webView, url) {
+      console.log("[*] 원본 URL: " + url);
+
+      // 원하는 URL로 변경
+      var modifiedUrl = "http://192.168.3.12:80";
+      console.log("[*] 변경된 URL: " + modifiedUrl);
+
+      // 변경된 URL을 로드
+      webView.loadUrl(modifiedUrl);
+
+      // 기본 동작을 막기 위해 true 반환
+      return true;
+  };
+});
+
+Java.perform(function () {
+  try {
+      var KURLSpan = Java.use('com.kakao.talk.util.KLinkify$KURLSpan'); // 클래스 로드
+
+      // KURLSpan 생성자 후킹
+      KURLSpan.$init.overload('java.lang.String', 'com.kakao.talk.util.KLinkify$h', 'boolean').implementation = function (url, clickListener, z14) {
+          console.log("[*] KURLSpan 생성자 호출됨");
+
+          // 전달된 인자 값 출력
+          console.log("URL: " + url);
+          console.log("ClickListener: " + clickListener);
+          console.log("밑줄 여부 (boolean): " + z14);
+
+          // 원본 생성자 호출
+          var instance = this.$init(url, clickListener, z14);
+
+          console.log("[*] KURLSpan 객체 생성 완료");
+          return instance;
+      };
+  } catch (e) {
+      console.error("[!] 오류 발생: " + e.message);
+  }
+});

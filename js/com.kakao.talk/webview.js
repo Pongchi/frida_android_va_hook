@@ -204,27 +204,3 @@ Java.perform(function () {
       return true;
   };
 });
-
-Java.perform(function () {
-  try {
-      var KURLSpan = Java.use('com.kakao.talk.util.KLinkify$KURLSpan'); // 클래스 로드
-
-      // KURLSpan 생성자 후킹
-      KURLSpan.$init.overload('java.lang.String', 'com.kakao.talk.util.KLinkify$h', 'boolean').implementation = function (url, clickListener, z14) {
-          console.log("[*] KURLSpan 생성자 호출됨");
-
-          // 전달된 인자 값 출력
-          console.log("URL: " + url);
-          console.log("ClickListener: " + clickListener);
-          console.log("밑줄 여부 (boolean): " + z14);
-
-          // 원본 생성자 호출
-          var instance = this.$init(url, clickListener, z14);
-
-          console.log("[*] KURLSpan 객체 생성 완료");
-          return instance;
-      };
-  } catch (e) {
-      console.error("[!] 오류 발생: " + e.message);
-  }
-});

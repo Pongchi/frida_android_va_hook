@@ -584,7 +584,7 @@
                 ],
                 "enable_http2": true,
                 "listen_mode": "specific_address",
-                "listen_specific_address": "192.168.3.12",
+                "listen_specific_address": "192.168.3.174",
                 "listener_port": 8080,
                 "running": true,
                 "use_custom_tls_protocols": false

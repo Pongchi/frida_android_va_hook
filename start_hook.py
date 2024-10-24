@@ -62,6 +62,41 @@ def run_command(command, check=False):
     except Exception as e:
         print(f"[@] 명령 실행 중 오류 발생: {e}")
 
+def get_host_ip():
+    """호스트 IP 주소 가져오기."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(('8.8.8.8', 1))
+            ip = s.getsockname()[0]
+            return ip
+    except Exception as e:
+        print(f"[@] 호스트 IP를 가져오는 중 에러 발생: {e}")
+        return None
+
+def set_proxy(ip, port=8080):
+    """프록시 설정."""
+    try:
+        run_command(['adb', 'shell', 'settings', 'put', 'global', 'http_proxy', f'{ip}:{port}'], check=True)
+        print(f'[@] 프록시가 {ip}:{port}로 설정되었습니다.')
+
+        with open('burp_project_settings.json', 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        data['proxy']['request_listeners'][1].update({
+            'listen_specific_address': ip,
+            'listener_port': port
+        })
+
+        with open('burp_project_settings.json', 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4, ensure_ascii=False)
+
+    except FileNotFoundError as e:
+        print(f"[@] 설정 파일을 찾을 수 없습니다: {e}")
+    except json.JSONDecodeError as e:
+        print(f"[@] JSON 디코딩 오류: {e}")
+    except Exception as e:
+        print(f"[@] 프록시 설정 중 오류 발생: {e}")
+
 def launch_nox():
     """Nox 에뮬레이터 실행."""
     try:
@@ -168,6 +203,10 @@ def reconnect_adb():
 
 def main():
     """메인 함수."""
+    host_ip = get_host_ip()
+    if host_ip:
+        set_proxy(host_ip)
+        
     launch_nox()
 
     if not is_nox_ready():

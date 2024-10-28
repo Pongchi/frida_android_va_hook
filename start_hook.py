@@ -210,11 +210,10 @@ def main():
         return
 
     reset_adb()
+    start_frida_server()
     host_ip = get_host_ip()
     if host_ip:
         set_proxy(host_ip)
-        
-    start_frida_server()
 
     session = spawn_and_hook()
     if session:

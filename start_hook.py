@@ -8,13 +8,13 @@ import os
 
 # 후킹 대상 앱 목록
 targets = [
-    ['org.thoughtcrime.securesms', 'Signal'],  # 0
-    ['org.telegram.messenger', '텔레그램'],    # 1
-    ['com.kakao.talk', '카카오톡'],            # 2
-    ['com.discord', 'Discord'],               # 3
+    ['org.thoughtcrime.securesms', 'Signal'],       # 0
+    ['org.telegram.messenger', '텔레그램'],         # 1
+    ['com.kakao.talk', '카카오톡'],                 # 2
+    ['com.discord', 'Discord'],                    # 3
 ]
 
-target_index = 2  # 카카오톡 후킹
+target_index = 2
 app_name, process_name = targets[target_index]
 
 def load_js_scripts(app_name):
@@ -203,10 +203,6 @@ def reconnect_adb():
 
 def main():
     """메인 함수."""
-    host_ip = get_host_ip()
-    if host_ip:
-        set_proxy(host_ip)
-        
     launch_nox()
 
     if not is_nox_ready():
@@ -214,6 +210,10 @@ def main():
         return
 
     reset_adb()
+    host_ip = get_host_ip()
+    if host_ip:
+        set_proxy(host_ip)
+        
     start_frida_server()
 
     session = spawn_and_hook()

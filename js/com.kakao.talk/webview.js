@@ -26,6 +26,7 @@ function enableWebviewDebugging() {
   };
 
   Webview.loadUrl.overload("java.lang.String", "java.util.Map").implementation = function (url, additionalHttpHeaders) {
+    printStacktrace()
     console.log("\n[+] {case 2} Loading URL from", url);
     console.log("[+] Additional Headers:");
     var headers = Java.cast(additionalHttpHeaders, Java.use("java.util.Map"));
@@ -184,23 +185,58 @@ Java.perform(function () {
 });
 
 */
+Java.perform(function () {
+  try {
+      // u50.c 클래스 참조
+      var targetClass = Java.use('u50.c');
+
+      console.log("[*] Fields in u50.c:");
+
+      // 모든 필드 가져오기
+      var fields = targetClass.class.getDeclaredFields();
+
+      fields.forEach(function (field) {
+          try {
+              field.setAccessible(true); // private 필드 접근 허용
+              
+              var fieldName = field.getName();
+              
+              // 필드가 정적(static)인지 확인하고 접근 방식 결정
+              var value;
+              if (field.getModifiers() & Java.use('java.lang.reflect.Modifier').STATIC) {
+                  value = field.get(null);  // 정적 필드 접근
+              } else {
+                  value = field.get(targetClass.$new());  // 인스턴스 필드 접근
+              }
+
+              console.log(fieldName + ": " + value);
+          } catch (e) {
+              console.log("Error accessing field: " + e.message);
+          }
+      });
+  } catch (e) {
+      console.log("Error: " + e.message);
+  }
+});
 
 Java.perform(function () {
-  var WebClient = Java.use('com.kakao.talk.webview.activity.AccountSettingActivity$g');
+  // 클래스 참조
+  var IntentUtils = Java.use('com.kakao.talk.util.IntentUtils');
 
-  WebClient.shouldOverrideUrlLoading.overload(
-      'android.webkit.WebView', 'java.lang.String'
-  ).implementation = function (webView, url) {
-      console.log("[*] 원본 URL: " + url);
+  // H 메서드 오버라이드 (Uri 인자를 받음)
+  IntentUtils.H.overload('android.net.Uri').implementation = function (uri) {
+      console.log("[*] Hooked IntentUtils.H() method!");
 
-      // 원하는 URL로 변경
-      var modifiedUrl = "http://192.168.3.12:80";
-      console.log("[*] 변경된 URL: " + modifiedUrl);
+      // 인자 출력
+      console.log("Input Uri: " + uri.toString());
 
-      // 변경된 URL을 로드
-      webView.loadUrl(modifiedUrl);
+      // 원래 메서드 호출 및 결과 저장
+      var result = this.H(uri);
 
-      // 기본 동작을 막기 위해 true 반환
-      return true;
+      // 리턴 값 출력
+      console.log("Return Intent: " + result.toString());
+
+      // 결과 반환
+      return result;
   };
 });

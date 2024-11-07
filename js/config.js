@@ -1,4 +1,4 @@
-const enableStacktracePrinting = false;
+const enableStacktracePrinting = true;
 const inputDataReplacements = [
     ["msg", "test", "\n\n\n\n\n\n\n"],
     ['ex', '{"cmt":""}', '{"cmt":"hello world"}'],
@@ -9,5 +9,4 @@ const inputDataReplacements = [
 ]
 
 const receiveDataReplacements = [
-    ['message', '?', 'test'],
 ];

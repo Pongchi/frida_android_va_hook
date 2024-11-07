@@ -52,3 +52,4 @@ function printStacktrace() {
     .replace("java.lang.Exception", "");
   console.log(stacktrace);
 }
+

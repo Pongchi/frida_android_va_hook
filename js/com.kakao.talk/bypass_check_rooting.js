@@ -243,12 +243,12 @@ Java.perform(function () {
 
 Java.perform(function () {
     try {
-        var a33BClass = Java.use("a33.b");
-        console.log("[+] Hooking xz2.b class!");
+        var a33BClass = Java.use("sb0.b");
+        console.log("[+] Hooking sb0.b class!");
 
         // a 메소드 후킹
         a33BClass.a.implementation = function (tag, reserved, list) {
-            console.log("[+] Rooting Detection Method a33.b.a() called! -> Bypass!");
+            console.log("[+] Rooting Detection Method sb0.b.a() called! -> Bypass!");
             console.log("[+] Tag: " + tag);
             console.log("[+] Reserved: " + reserved);
 
@@ -266,7 +266,7 @@ Java.perform(function () {
             return this.a(tag, reserved, list);
         };
 
-        console.log("[+] Hooked a33.b.a() Method!");
+        console.log("[+] Hooked sb0.b.a() Method!");
     } catch (error) {
         console.log("[Error] " + error);
     }
